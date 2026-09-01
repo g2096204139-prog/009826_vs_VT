@@ -1,0 +1,4 @@
+pandas>=2.2
+yfinance>=0.2.66
+matplotlib>=3.9
+plotly>=6.0
