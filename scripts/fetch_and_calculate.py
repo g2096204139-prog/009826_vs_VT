@@ -73,7 +73,7 @@ def main() -> None:
         showarrow=False,
         font={"size": 11, "color": "#555"},
     )
-    fig.write_html(reports / "performance.html", include_plotlyjs=True)
+    fig.write_html(reports / "performance.html", include_plotlyjs="cdn")
 
     plt.figure(figsize=(11, 6))
     plt.plot(out.index, out["009826_index"], label="009826")
