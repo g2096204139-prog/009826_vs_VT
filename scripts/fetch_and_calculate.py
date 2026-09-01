@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+import time
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -12,23 +13,48 @@ ROOT = Path(__file__).resolve().parents[1]
 START = "2026-08-03"
 END = (pd.Timestamp.now(tz="Asia/Taipei").normalize() + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
 TICKERS = {"009826": "009826.TW", "VT": "VT", "USDTWD": "TWD=X"}
+MAX_RETRIES = 4
+RETRY_DELAYS = (20, 45, 90, 180)
 
 
-def download(symbol: str, start: str, end: str) -> pd.DataFrame:
-    data = yf.download(symbol, start=start, end=end, auto_adjust=False, progress=False)
-    if data.empty:
-        raise RuntimeError(f"No data returned for {symbol}")
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.get_level_values(0)
-    return data
+def download(symbol: str, start: str, end: str, *, auto_adjust: bool = False) -> pd.DataFrame:
+    raw_dir = ROOT / "data" / "raw"
+    raw_dir.mkdir(parents=True, exist_ok=True)
+    mode = "adjusted" if auto_adjust else "raw"
+    cache_path = raw_dir / f"{symbol.replace('=', '_').replace('.', '_')}_{mode}.csv"
+    if cache_path.exists():
+        cached = pd.read_csv(cache_path, index_col=0, parse_dates=True)
+        if not cached.empty:
+            return cached
+
+    last_error: Exception | None = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            data = yf.download(
+                symbol,
+                start=start,
+                end=end,
+                auto_adjust=auto_adjust,
+                progress=False,
+                threads=False,
+            )
+            if isinstance(data.columns, pd.MultiIndex):
+                data.columns = data.columns.get_level_values(0)
+            if not data.empty:
+                data.to_csv(cache_path)
+                return data
+            last_error = RuntimeError(f"No data returned for {symbol}")
+        except Exception as exc:
+            last_error = exc
+        if attempt < MAX_RETRIES - 1:
+            delay = RETRY_DELAYS[attempt]
+            print(f"{symbol}: attempt {attempt + 1} failed; retrying in {delay}s")
+            time.sleep(delay)
+    raise RuntimeError(f"Unable to download {symbol} after {MAX_RETRIES} attempts: {last_error}")
 
 
 def adjusted_close(symbol: str, start: str, end: str) -> pd.Series:
-    data = yf.download(symbol, start=start, end=end, auto_adjust=True, progress=False)
-    if data.empty:
-        raise RuntimeError(f"No adjusted data returned for {symbol}")
-    if isinstance(data.columns, pd.MultiIndex):
-        data.columns = data.columns.get_level_values(0)
+    data = download(symbol, start, end, auto_adjust=True)
     return data["Close"].rename(symbol)
 
 
@@ -65,8 +91,7 @@ def main() -> None:
     processed.mkdir(parents=True, exist_ok=True)
     reports.mkdir(parents=True, exist_ok=True)
 
-    csv_path = processed / "performance.csv"
-    out.to_csv(csv_path)
+    out.to_csv(processed / "performance.csv")
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=out.index, y=out["009826_index"], mode="lines", name="009826 貝萊德世界股票"))
