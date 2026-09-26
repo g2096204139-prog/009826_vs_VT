@@ -184,7 +184,7 @@ def update_vt_distributions(page: Page) -> int:
         next_page_count = next_page.count()
         if next_page_count != 1:
             raise RuntimeError(f"Expected one Vanguard distribution pagination button, found {next_page_count}")
-        if not next_page.is_enabled():
+        if next_page.get_attribute("aria-disabled") == "true" or not next_page.is_enabled():
             break
         next_page.click()
         page.wait_for_timeout(500)
