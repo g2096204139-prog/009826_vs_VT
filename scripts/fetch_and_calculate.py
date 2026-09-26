@@ -16,44 +16,95 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data" / "source"
 
 
-def read_source(filename: str) -> pd.DataFrame:
+def read_source(filename: str, allow_empty: bool = False) -> pd.DataFrame:
     path = SOURCE / filename
     data = pd.read_csv(path, parse_dates=["date"]).set_index("date").sort_index()
-    if data.empty:
+    if data.empty and not allow_empty:
         raise RuntimeError(f"Empty source file: {path}")
     if data.index.has_duplicates:
         raise RuntimeError(f"Duplicate dates in source file: {path}")
     return data
 
 
+
+def read_distributions() -> pd.DataFrame:
+    path = SOURCE / "vt_distributions.csv"
+    if not path.exists():
+        raise RuntimeError(f"Missing required VT distribution source file: {path}")
+    data = pd.read_csv(path, parse_dates=["ex_date"])
+    required = {"ex_date", "distribution_per_share_usd", "payable_date", "record_date", "type", "source", "source_url"}
+    missing = required.difference(data.columns)
+    if missing:
+        raise RuntimeError(f"VT distribution source is missing columns: {sorted(missing)}")
+    return data
+
+
+def compute_vt_total_return(px_vt: pd.DataFrame, distributions: pd.DataFrame) -> pd.DataFrame:
+    prices = px_vt[["close"]].copy()
+    prices.index = pd.to_datetime(prices.index)
+    prices = prices.sort_index()
+    if prices.empty or prices.index.has_duplicates or not prices.index.is_monotonic_increasing:
+        raise RuntimeError("VT price observations must be non-empty, unique, and ascending.")
+    if prices["close"].isna().any() or (prices["close"] <= 0).any():
+        raise RuntimeError("VT closing prices must be present and positive.")
+
+    cash = pd.Series(0.0, index=prices.index, name="VT_distribution_usd")
+    if not distributions.empty:
+        required = {"ex_date", "distribution_per_share_usd"}
+        missing = required.difference(distributions.columns)
+        if missing:
+            raise RuntimeError(f"VT distribution data is missing columns: {sorted(missing)}")
+        records = distributions[["ex_date", "distribution_per_share_usd"]].copy()
+        records["ex_date"] = pd.to_datetime(records["ex_date"], errors="coerce")
+        records["distribution_per_share_usd"] = pd.to_numeric(records["distribution_per_share_usd"], errors="coerce")
+        if records.isna().any().any() or (records["distribution_per_share_usd"] < 0).any():
+            raise RuntimeError("VT distributions must have valid ex-dates and non-negative amounts.")
+        by_date = records.groupby("ex_date")["distribution_per_share_usd"].sum()
+        missing_price_dates = by_date.index.difference(prices.index)
+        if len(missing_price_dates):
+            raise RuntimeError(
+                "VT distributions have no matching Vanguard close on ex-dates: "
+                + ", ".join(d.date().isoformat() for d in missing_price_dates)
+            )
+        cash.loc[by_date.index] = by_date
+
+    daily_factor = (prices["close"] + cash) / prices["close"].shift(1)
+    daily_factor.iloc[0] = 1.0
+    if daily_factor.isna().any() or (daily_factor <= 0).any():
+        raise RuntimeError("VT total-return daily factors must be present and positive.")
+    result = pd.DataFrame(index=prices.index)
+    result["VT_close_usd"] = prices["close"]
+    result["VT_distribution_usd"] = cash
+    result["VT_total_return_usd_index"] = daily_factor.cumprod() * 100
+    return result
+
+
 def build_performance(
     px_009826: pd.DataFrame,
     px_vt: pd.DataFrame,
     fx: pd.DataFrame,
+    distributions: pd.DataFrame,
     retrieved_at_utc: str | None = None,
 ) -> pd.DataFrame:
+    vt_total_return = compute_vt_total_return(px_vt, distributions)
     out = pd.concat(
-        [
-            px_009826["close"].rename("009826_close"),
-            px_vt["close"].rename("VT_close_usd"),
-            fx["usd_twd"],
-        ],
+        [px_009826["close"].rename("009826_close"), fx["usd_twd"]],
         axis=1,
         join="inner",
-    ).sort_index().dropna()
-
+    ).join(vt_total_return, how="inner").sort_index().dropna()
     if out.empty:
         raise RuntimeError("No overlapping TWSE/Vanguard/CBC observations.")
     if out.index.has_duplicates or not out.index.is_monotonic_increasing:
         raise RuntimeError("Common observations must have unique, ascending dates.")
-    if out[["009826_close", "VT_close_usd", "usd_twd"]].isna().any().any():
-        raise RuntimeError("Common observations contain missing source values.")
-    if (out[["009826_close", "VT_close_usd", "usd_twd"]] <= 0).any().any():
-        raise RuntimeError("Prices and exchange rates must be positive.")
+    source_columns = ["009826_close", "VT_close_usd", "usd_twd", "VT_total_return_usd_index"]
+    if out[source_columns].isna().any().any() or (out[source_columns] <= 0).any().any():
+        raise RuntimeError("Common prices, exchange rates, and indexes must be present and positive.")
 
     out["VT_close_twd"] = out["VT_close_usd"] * out["usd_twd"]
     out["009826_index"] = out["009826_close"] / out["009826_close"].iloc[0] * 100
-    out["VT_index"] = out["VT_close_twd"] / out["VT_close_twd"].iloc[0] * 100
+    vt_base = out["VT_total_return_usd_index"].iloc[0] * out["usd_twd"].iloc[0]
+    out["VT_index"] = out["VT_total_return_usd_index"] * out["usd_twd"] / vt_base * 100
+    out["VT_price_index"] = out["VT_close_twd"] / out["VT_close_twd"].iloc[0] * 100
     out["difference_pp"] = out["009826_index"] - out["VT_index"]
     out.index = pd.to_datetime(out.index).date
     out.index.name = "date"
@@ -64,8 +115,9 @@ def build_performance(
 
 def validate_performance(out: pd.DataFrame) -> None:
     required = {
-        "009826_close", "VT_close_usd", "usd_twd", "VT_close_twd",
-        "009826_index", "VT_index", "difference_pp", "retrieved_at_utc",
+        "009826_close", "VT_close_usd", "usd_twd", "VT_close_twd", "VT_distribution_usd",
+        "VT_total_return_usd_index", "VT_price_index", "009826_index", "VT_index",
+        "difference_pp", "retrieved_at_utc",
     }
     missing = required.difference(out.columns)
     if missing:
@@ -76,8 +128,14 @@ def validate_performance(out: pd.DataFrame) -> None:
         raise RuntimeError("Performance data contains missing values.")
     if not (out["difference_pp"] - (out["009826_index"] - out["VT_index"])).abs().lt(1e-10).all():
         raise RuntimeError("Performance gap does not match the two index series.")
-    if abs(out["009826_index"].iloc[0] - 100) > 1e-10 or abs(out["VT_index"].iloc[0] - 100) > 1e-10:
-        raise RuntimeError("Both index series must start at 100.")
+    expected_vt = (
+        out["VT_total_return_usd_index"] * out["usd_twd"]
+        / (out["VT_total_return_usd_index"].iloc[0] * out["usd_twd"].iloc[0]) * 100
+    )
+    if not (out["VT_index"] - expected_vt).abs().lt(1e-10).all():
+        raise RuntimeError("TWD VT total-return index does not match USD return and CBC FX.")
+    if abs(out["009826_index"].iloc[0] - 100) > 1e-10 or abs(out["VT_index"].iloc[0] - 100) > 1e-10 or abs(out["VT_price_index"].iloc[0] - 100) > 1e-10:
+        raise RuntimeError("All index series must start at 100.")
 
 
 def update_readme(readme_path: Path, out: pd.DataFrame) -> str:
@@ -102,7 +160,7 @@ def update_readme(readme_path: Path, out: pd.DataFrame) -> str:
         f"## 最新結果\n\n"
         f"- 共同完整資料：{start_date} 至 {end_date}，共 {count} 個交易日\n"
         f"- 009826：{out['009826_index'].iloc[-1]:.4f}\n"
-        f"- VT（美元市場價格換算新臺幣，未含配息再投入）：{out['VT_index'].iloc[-1]:.4f}\n"
+        f"- VT（含息總報酬；配息按除息日收盤再投入後換算新臺幣）：{out['VT_index'].iloc[-1]:.4f}\n"
         f"- 差距：{gap_text}\n"
         f"- 基準：兩者於 {start_date} 均標準化為 100\n"
     )
@@ -133,7 +191,7 @@ def write_outputs(out: pd.DataFrame, root: Path = ROOT) -> None:
 
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=out.index, y=out["009826_index"], mode="lines", name="009826 貝萊德世界股票"))
-    fig.add_trace(go.Scatter(x=out.index, y=out["VT_index"], mode="lines", name="VT"))
+    fig.add_trace(go.Scatter(x=out.index, y=out["VT_index"], mode="lines", name="VT（含息總報酬）"))
     fig.update_layout(
         title="009826 vs VT 累積績效（新臺幣，起始值 100）",
         xaxis_title="交易日",
@@ -156,7 +214,7 @@ def write_outputs(out: pd.DataFrame, root: Path = ROOT) -> None:
 
     plt.figure(figsize=(11, 6))
     plt.plot(out.index, out["009826_index"], label="009826")
-    plt.plot(out.index, out["VT_index"], label="VT")
+    plt.plot(out.index, out["VT_index"], label="VT total return")
     plt.title("009826 vs VT cumulative performance (TWD, start = 100)")
     plt.xlabel("Date")
     plt.ylabel("Performance index")
@@ -212,7 +270,8 @@ def main() -> None:
     px_009826 = read_source("009826_twse.csv")
     px_vt = read_source("vt_vanguard.csv")
     fx = read_source("usdtwd_cbc.csv")
-    out = build_performance(px_009826, px_vt, fx)
+    distributions = read_distributions()
+    out = build_performance(px_009826, px_vt, fx, distributions)
     write_outputs(out)
     print(
         f"Saved {len(out)} observations from {out.index[0]} through {out.index[-1]}; "
