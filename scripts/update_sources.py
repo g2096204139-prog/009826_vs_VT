@@ -185,7 +185,7 @@ def update_vt_distributions(page: Page) -> int:
             break
         next_page.click()
         page.wait_for_timeout(500)
-    columns = ["ex_date", "distribution_per_share_usd", "payable_date", "record_date", "type", "source", "retrieved_at_utc"]
+    columns = ["ex_date", "distribution_per_share_usd", "payable_date", "record_date", "type", "source", "source_url", "retrieved_at_utc"]
     return merge_distributions(pd.DataFrame(records, columns=columns))
 
 
