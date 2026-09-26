@@ -24,6 +24,7 @@ class ReportingTests(unittest.TestCase):
         self.assertEqual(len(parsed), 1)
         self.assertEqual(parsed[0]["ex_date"], "2026-09-18")
         self.assertAlmostEqual(parsed[0]["distribution_per_share_usd"], 0.4084)
+        self.assertTrue(parsed[0]["source_url"].startswith("https://advisors.vanguard.com/"))
 
     def test_dividend_reinvestment_uses_full_us_calendar(self) -> None:
         us_dates = pd.to_datetime(["2026-09-17", "2026-09-18", "2026-09-21"])
