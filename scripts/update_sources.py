@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import re
 import time
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -111,12 +111,90 @@ def update_cbc(page: Page) -> int:
     return merge_csv("usdtwd_cbc.csv", pd.DataFrame(records))
 
 
+
+def parse_distribution_rows(rows: list[list[str]]) -> list[dict[str, object]]:
+    if not rows:
+        raise RuntimeError("Vanguard distribution table is missing its header")
+    headers = [cell.strip().upper() for cell in rows[0]]
+    required = ["TYPE", "$/SHARE", "PAYABLE DATE", "RECORD DATE", "EX-DIVIDEND DATE"]
+    if not all(name in headers for name in required):
+        raise RuntimeError(f"Unexpected Vanguard distribution columns: {headers}")
+    positions = {name: headers.index(name) for name in required}
+    records: list[dict[str, object]] = []
+    for row in rows[1:]:
+        if len(row) < len(headers):
+            continue
+        ex_date = datetime.strptime(row[positions["EX-DIVIDEND DATE"]], "%m/%d/%Y").date()
+        if ex_date < START:
+            continue
+        records.append({
+            "ex_date": ex_date.isoformat(),
+            "distribution_per_share_usd": money(row[positions["$/SHARE"]]),
+            "payable_date": datetime.strptime(row[positions["PAYABLE DATE"]], "%m/%d/%Y").date().isoformat(),
+            "record_date": datetime.strptime(row[positions["RECORD DATE"]], "%m/%d/%Y").date().isoformat(),
+            "type": row[positions["TYPE"]].strip(),
+            "source": "Vanguard",
+            "source_url": "https://advisors.vanguard.com/investments/products/vt/vanguard-total-world-stock-etf",
+            "retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
+        })
+    return records
+
+
+def merge_distributions(new_data: pd.DataFrame) -> int:
+    path = SOURCE / "vt_distributions.csv"
+    SOURCE.mkdir(parents=True, exist_ok=True)
+    existing = pd.read_csv(path) if path.exists() else pd.DataFrame()
+    merged = pd.concat([existing, new_data], ignore_index=True)
+    columns = ["ex_date", "distribution_per_share_usd", "payable_date", "record_date", "type", "source", "source_url", "retrieved_at_utc"]
+    if merged.empty:
+        merged = pd.DataFrame(columns=columns)
+    else:
+        for column in ("ex_date", "payable_date", "record_date"):
+            merged[column] = pd.to_datetime(merged[column]).dt.strftime("%Y-%m-%d")
+        merged = merged.drop_duplicates(subset=["ex_date", "type", "payable_date"], keep="last")
+        merged = merged.sort_values(["ex_date", "type"])
+    merged[columns].to_csv(path, index=False)
+    return len(merged)
+
+
+def update_vt_distributions(page: Page) -> int:
+    page.goto("https://advisors.vanguard.com/investments/products/vt/vanguard-total-world-stock-etf", wait_until="domcontentloaded")
+    page.get_by_role("link", name="Price & distributions", exact=True).click()
+    start_input = page.locator("#distributionStartDateInput")
+    start_input.wait_for(state="visible", timeout=30_000)
+    start_input.fill(START.isoformat())
+    page.wait_for_timeout(2_000)
+    distribution_table = None
+    for index in range(page.locator("table").count()):
+        table = page.locator("table").nth(index)
+        text = table.inner_text()
+        if "EX-DIVIDEND DATE" in text and "$/SHARE" in text and "PAYABLE DATE" in text:
+            distribution_table = table
+            break
+    if distribution_table is None:
+        raise RuntimeError("Vanguard distribution table not found")
+    records: list[dict[str, object]] = []
+    page_count = 0
+    while True:
+        records.extend(parse_distribution_rows(rows_from_table(distribution_table)))
+        page_count += 1
+        if page_count > 100:
+            raise RuntimeError("Vanguard distribution pagination exceeded safety limit")
+        next_page = page.get_by_role("button", name="Next page")
+        if next_page.count() == 0 or not next_page.is_enabled():
+            break
+        next_page.click()
+        page.wait_for_timeout(500)
+    columns = ["ex_date", "distribution_per_share_usd", "payable_date", "record_date", "type", "source", "retrieved_at_utc"]
+    return merge_distributions(pd.DataFrame(records, columns=columns))
+
+
 def main() -> None:
     results: dict[str, str] = {}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(locale="zh-TW")
-        for name, updater in (("TWSE", update_twse), ("Vanguard", update_vanguard), ("CBC", update_cbc)):
+        for name, updater in (("TWSE", update_twse), ("Vanguard prices", update_vanguard), ("Vanguard distributions", update_vt_distributions), ("CBC", update_cbc)):
             try:
                 count = updater(page)
                 results[name] = f"ok ({count} rows retained)"
