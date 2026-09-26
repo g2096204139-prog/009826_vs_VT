@@ -177,7 +177,7 @@ def update_vt_distributions(page: Page) -> int:
         page_count += 1
         if page_count > 100:
             raise RuntimeError("Vanguard distribution pagination exceeded safety limit")
-        next_page = page.locator("#priceanddistributions").get_by_role("button", name="Next page")
+        next_page = page.locator('#priceanddistributions button[aria-label="Next page"]:visible')
         next_page_count = next_page.count()
         if next_page_count != 1:
             raise RuntimeError(f"Expected one Vanguard distribution pagination button, found {next_page_count}")
