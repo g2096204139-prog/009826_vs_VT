@@ -160,9 +160,6 @@ def merge_distributions(new_data: pd.DataFrame) -> int:
 def update_vt_distributions(page: Page) -> int:
     page.goto("https://advisors.vanguard.com/investments/products/vt/vanguard-total-world-stock-etf", wait_until="domcontentloaded")
     page.get_by_role("link", name="Price & distributions", exact=True).click()
-    start_input = page.locator("#distributionStartDateInput")
-    start_input.wait_for(state="visible", timeout=30_000)
-    start_input.fill(START.isoformat())
     page.wait_for_timeout(2_000)
     distribution_table = None
     for index in range(page.locator("table").count()):
