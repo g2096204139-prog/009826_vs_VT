@@ -66,7 +66,7 @@ class ReportingTests(unittest.TestCase):
             self.assertEqual(csv["date"].iloc[-1].date().isoformat(), "2026-09-24")
             self.assertIn("共同完整資料：2026-09-23 至 2026-09-24，共 2 個交易日", readme)
             self.assertIn("VT（含息總報酬", readme)
-            self.assertIn("VT（含息總報酬）", html)
+            self.assertIn(r"VT\uff08\u542b\u606f\u7e3d\u5831\u916c\uff09", html)
             self.assertTrue((root / "reports/performance.png").is_file())
 
     def test_missing_ex_date_close_fails_closed(self) -> None:
