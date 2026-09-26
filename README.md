@@ -2,9 +2,7 @@
 
 比較 009826 貝萊德世界股票與 Vanguard Total World Stock ETF（VT）的每日累積績效。
 
-![009826 vs VT 價格報酬線圖（不含配息）](reports/performance.png)
-
-> 目前圖檔、HTML 與整理 CSV 仍是上一版價格報酬結果；合併後的資料流程會重建這些輸出。
+![009826 vs VT 累積績效線圖（VT 含配息總報酬）](reports/performance.png)
 
 ## 最新結果
 
