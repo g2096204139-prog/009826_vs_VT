@@ -29,6 +29,7 @@ jobs:
       - run: python -m playwright install --with-deps chromium
       - run: python scripts/update_sources.py
       - run: python scripts/fetch_and_calculate.py
+      - run: python scripts/data_quality.py
       - name: Commit updated data and reports
         run: |
           git config user.name "github-actions[bot]"
@@ -36,3 +37,4 @@ jobs:
           git add data/source data/processed reports README.md
           git diff --cached --quiet || git commit -m "Update daily 009826 vs VT performance"
           git push
+

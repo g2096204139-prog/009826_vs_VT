@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 import re
+import json
+import os
+import tempfile
 import time
 from datetime import date, datetime, timezone
 from pathlib import Path
@@ -8,6 +11,11 @@ from zoneinfo import ZoneInfo
 
 import pandas as pd
 from playwright.sync_api import Page, sync_playwright
+
+if __package__:
+    from .data_quality import FILES, inspect_sources
+else:
+    from data_quality import FILES, inspect_sources
 
 ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / "data" / "source"
@@ -191,24 +199,66 @@ def update_vt_distributions(page: Page) -> int:
     return merge_distributions(pd.DataFrame(records, columns=columns))
 
 
+def update_all(page: Page, updaters, source: Path = SOURCE) -> dict[str, str]:
+    """Stage all updates and validate before publishing; rollback publication errors."""
+    global SOURCE
+    original_source = SOURCE
+    source.mkdir(parents=True, exist_ok=True)
+    results: dict[str, str] = {}
+    files = list(FILES) + ["source_updates.json"]
+    originals = {name: (source / name).read_bytes() if (source / name).exists() else None for name in files}
+    try:
+        with tempfile.TemporaryDirectory(prefix="source-candidate-", dir=source.parent) as temp:
+            candidate = Path(temp)
+            for name, content in originals.items():
+                if content is not None:
+                    (candidate / name).write_bytes(content)
+            SOURCE = candidate
+            for name, updater in updaters:
+                try:
+                    count = updater(page)
+                    results[name] = f"ok ({count} rows retained)"
+                except Exception as exc:
+                    results[name] = f"failed ({exc})"
+                time.sleep(3)
+            if not all(result.startswith("ok") for result in results.values()):
+                raise RuntimeError("One or more sources failed; ALL existing source files were preserved: " + str(results))
+            validation = inspect_sources(candidate, datetime.now(TAIPEI).date())
+            if validation["errors"]:
+                raise RuntimeError("Candidate validation failed; ALL existing source files were preserved: " + "; ".join(validation["errors"]))
+            (candidate / "source_updates.json").write_text(json.dumps({
+                "retrieved_at_utc": datetime.now(timezone.utc).isoformat(),
+                "sources": results,
+                "validation_status": validation["status"],
+            }, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            try:
+                for name in files:
+                    os.replace(candidate / name, source / name)
+            except Exception:
+                for name, content in originals.items():
+                    if content is None:
+                        (source / name).unlink(missing_ok=True)
+                    else:
+                        (source / name).write_bytes(content)
+                raise
+    finally:
+        SOURCE = original_source
+    return results
+
+
 def main() -> None:
     results: dict[str, str] = {}
     with sync_playwright() as playwright:
         browser = playwright.chromium.launch(headless=True)
         page = browser.new_page(locale="zh-TW")
-        for name, updater in (("TWSE", update_twse), ("Vanguard prices", update_vanguard), ("Vanguard distributions", update_vt_distributions), ("CBC", update_cbc)):
-            try:
-                count = updater(page)
-                results[name] = f"ok ({count} rows retained)"
-            except Exception as exc:
-                results[name] = f"failed; existing cache retained ({exc})"
-            time.sleep(3)
-        browser.close()
+        try:
+            results = update_all(page, (("TWSE", update_twse), ("Vanguard prices", update_vanguard), ("Vanguard distributions", update_vt_distributions), ("CBC", update_cbc)))
+        finally:
+            browser.close()
     for name, result in results.items():
         print(f"{name}: {result}")
-    if not all(result.startswith("ok") for result in results.values()):
-        raise RuntimeError("One or more sources failed; existing source files were preserved")
 
 
 if __name__ == "__main__":
     main()
+

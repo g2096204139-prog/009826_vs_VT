@@ -43,6 +43,12 @@ VT 原始配息資料獨立保存在 data/source/vt_distributions.csv，記錄�
 
 ## 驗證
 
+比較口徑與凍結方法見 [公平比較規格 v0.2](docs/comparison-spec-v0.2.md)。目前圖表為市場價格口徑、持有人稅費前的理論含息比較；009826 現行不配息，底層股息效果已反映於基金，不另外加一次。基金 NAV 對各自基準的比較與個人稅後報酬尚缺資料。
+
+每次更新另產生 [資料品質摘要](data/processed/data_quality.json)，記錄四來源截止日、列數、重複鍵、缺值、相對缺日、擷取時間與原始位元組 SHA-256。行情以觀察日評估新鮮度，配息以擷取時間評估；7 個日曆日為作業攔截上限。未核對官方交易日曆的相對缺日仍列為未知，不能據此宣稱完整無漏日。
+
+四來源先暫存並通過品質檢查才發布；抓取／檢查失敗保留全部舊來源，發布發生正常例外時還原舊檔。工作流程任何步驟失敗均不自動提交。
+
 GitHub Actions 每次產生報告時，會核對 CSV 的日期範圍與筆數、HTML 註記、PNG 中繼資料及本 README 最新結果區塊。任何一項與本次共同資料不一致，工作流程就會失敗。
 
 [查看首次成功執行紀錄](https://github.com/g2096204139-prog/009826_vs_VT/actions/runs/33538733948)
@@ -54,8 +60,10 @@ python -m pip install -r requirements.txt
 python -m playwright install chromium
 python scripts/update_sources.py
 python scripts/fetch_and_calculate.py
+python scripts/data_quality.py
 ```
 
 ## 重要限制
 
 009826 上市時間很短，不能由目前結果推論長期績效。未納入個人交易手續費、證券交易稅、匯款費、複委託費用或個人稅務結果；圖表不是投資建議。
+
