@@ -1,0 +1,120 @@
+{
+  "schema_version": "1.0",
+  "as_of_date": "2026-10-10",
+  "max_age_calendar_days": 7,
+  "status": "PASS_WITH_CALENDAR_LIMITATION",
+  "sources": {
+    "009826_twse.csv": {
+      "rows": 47,
+      "first_date": "2026-08-03",
+      "latest_observation_date": "2026-10-08",
+      "latest_retrieved_at_utc": null,
+      "age_calendar_days": 2,
+      "freshness_basis": "observation_date",
+      "duplicate_keys": 0,
+      "missing_required_cells": 0,
+      "sha256": "c3c662ab902bf722880e7625e124ba4917493c9fefe1545947604512a70f2710",
+      "absent_relative_to_other_sources": [
+        "2026-09-25",
+        "2026-09-28"
+      ]
+    },
+    "vt_vanguard.csv": {
+      "rows": 48,
+      "first_date": "2026-08-03",
+      "latest_observation_date": "2026-10-08",
+      "latest_retrieved_at_utc": null,
+      "age_calendar_days": 2,
+      "freshness_basis": "observation_date",
+      "duplicate_keys": 0,
+      "missing_required_cells": 0,
+      "sha256": "8aa97dec169abfc44eb926f68d8fb91e996a93f6ed7649545662cbbeca641ad8",
+      "absent_relative_to_other_sources": [
+        "2026-09-07"
+      ]
+    },
+    "usdtwd_cbc.csv": {
+      "rows": 47,
+      "first_date": "2026-08-03",
+      "latest_observation_date": "2026-10-08",
+      "latest_retrieved_at_utc": null,
+      "age_calendar_days": 2,
+      "freshness_basis": "observation_date",
+      "duplicate_keys": 0,
+      "missing_required_cells": 0,
+      "sha256": "b6694f00262af60bdf6fde61c538b09ee34f277480257e9e4dafc6dae90e30c0",
+      "absent_relative_to_other_sources": [
+        "2026-09-25",
+        "2026-09-28"
+      ]
+    },
+    "vt_distributions.csv": {
+      "rows": 1,
+      "first_date": "2026-09-18",
+      "latest_observation_date": "2026-09-18",
+      "latest_retrieved_at_utc": "2026-10-09T16:26:44.746277+00:00",
+      "age_calendar_days": 1,
+      "freshness_basis": "retrieved_at_utc",
+      "duplicate_keys": 0,
+      "missing_required_cells": 0,
+      "sha256": "077a95f7e603ec52637c36b38e37cfc527451d95fa07153a85158ce3087a060b"
+    }
+  },
+  "common": {
+    "rows": 46,
+    "first_date": "2026-08-03",
+    "latest_date": "2026-10-08",
+    "dates": [
+      "2026-08-03",
+      "2026-08-04",
+      "2026-08-05",
+      "2026-08-06",
+      "2026-08-07",
+      "2026-08-10",
+      "2026-08-11",
+      "2026-08-12",
+      "2026-08-13",
+      "2026-08-14",
+      "2026-08-17",
+      "2026-08-18",
+      "2026-08-19",
+      "2026-08-20",
+      "2026-08-21",
+      "2026-08-24",
+      "2026-08-25",
+      "2026-08-26",
+      "2026-08-27",
+      "2026-08-28",
+      "2026-08-31",
+      "2026-09-01",
+      "2026-09-02",
+      "2026-09-03",
+      "2026-09-04",
+      "2026-09-08",
+      "2026-09-09",
+      "2026-09-10",
+      "2026-09-11",
+      "2026-09-14",
+      "2026-09-15",
+      "2026-09-16",
+      "2026-09-17",
+      "2026-09-18",
+      "2026-09-21",
+      "2026-09-22",
+      "2026-09-23",
+      "2026-09-24",
+      "2026-09-29",
+      "2026-09-30",
+      "2026-10-01",
+      "2026-10-02",
+      "2026-10-05",
+      "2026-10-06",
+      "2026-10-07",
+      "2026-10-08"
+    ]
+  },
+  "calendar_validation": "NOT_VERIFIED; relative absences may be holidays or missing data; no filling",
+  "errors": [],
+  "warnings": [],
+  "last_source_update": null
+}
