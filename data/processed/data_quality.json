@@ -16,19 +16,20 @@
       "sha256": "c3c662ab902bf722880e7625e124ba4917493c9fefe1545947604512a70f2710",
       "absent_relative_to_other_sources": [
         "2026-09-25",
-        "2026-09-28"
+        "2026-09-28",
+        "2026-10-09"
       ]
     },
     "vt_vanguard.csv": {
-      "rows": 48,
+      "rows": 49,
       "first_date": "2026-08-03",
-      "latest_observation_date": "2026-10-08",
+      "latest_observation_date": "2026-10-09",
       "latest_retrieved_at_utc": null,
-      "age_calendar_days": 2,
+      "age_calendar_days": 1,
       "freshness_basis": "observation_date",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "8aa97dec169abfc44eb926f68d8fb91e996a93f6ed7649545662cbbeca641ad8",
+      "sha256": "6c3263874273a9e24230849ae6afec53020043e3f677e7c54bc3fa10f2b207d2",
       "absent_relative_to_other_sources": [
         "2026-09-07"
       ]
@@ -45,19 +46,20 @@
       "sha256": "b6694f00262af60bdf6fde61c538b09ee34f277480257e9e4dafc6dae90e30c0",
       "absent_relative_to_other_sources": [
         "2026-09-25",
-        "2026-09-28"
+        "2026-09-28",
+        "2026-10-09"
       ]
     },
     "vt_distributions.csv": {
       "rows": 1,
       "first_date": "2026-09-18",
       "latest_observation_date": "2026-09-18",
-      "latest_retrieved_at_utc": "2026-10-09T16:26:44.746277+00:00",
-      "age_calendar_days": 1,
+      "latest_retrieved_at_utc": "2026-10-10T07:46:33.863051+00:00",
+      "age_calendar_days": 0,
       "freshness_basis": "retrieved_at_utc",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "077a95f7e603ec52637c36b38e37cfc527451d95fa07153a85158ce3087a060b"
+      "sha256": "8f8c8794efe24fbfc113082b3106435fe746ebca121b8a5cca709a70c7dcfce3"
     }
   },
   "common": {
@@ -116,5 +118,14 @@
   "calendar_validation": "NOT_VERIFIED; relative absences may be holidays or missing data; no filling",
   "errors": [],
   "warnings": [],
-  "last_source_update": null
+  "last_source_update": {
+    "retrieved_at_utc": "2026-10-10T07:46:53.800209+00:00",
+    "sources": {
+      "TWSE": "ok (47 rows retained)",
+      "Vanguard prices": "ok (49 rows retained)",
+      "Vanguard distributions": "ok (1 rows retained)",
+      "CBC": "ok (47 rows retained)"
+    },
+    "validation_status": "PASS_WITH_CALENDAR_LIMITATION"
+  }
 }
