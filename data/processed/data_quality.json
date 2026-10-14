@@ -1,19 +1,19 @@
 {
   "schema_version": "1.0",
-  "as_of_date": "2026-10-13",
+  "as_of_date": "2026-10-14",
   "max_age_calendar_days": 7,
   "status": "PASS_WITH_CALENDAR_LIMITATION",
   "sources": {
     "009826_twse.csv": {
-      "rows": 49,
+      "rows": 50,
       "first_date": "2026-08-03",
-      "latest_observation_date": "2026-10-13",
+      "latest_observation_date": "2026-10-14",
       "latest_retrieved_at_utc": null,
       "age_calendar_days": 0,
       "freshness_basis": "observation_date",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "34c01557a1d224b021a318cc3e2f75bfa5ee05689a4f9022aae39a06122e2fb8",
+      "sha256": "b1cbea849d27388359670f11ddbb18146e8af6976a1dd60f2a58579479f1b82e",
       "absent_relative_to_other_sources": [
         "2026-09-25",
         "2026-09-28",
@@ -21,30 +21,30 @@
       ]
     },
     "vt_vanguard.csv": {
-      "rows": 50,
+      "rows": 51,
       "first_date": "2026-08-03",
-      "latest_observation_date": "2026-10-12",
+      "latest_observation_date": "2026-10-13",
       "latest_retrieved_at_utc": null,
       "age_calendar_days": 1,
       "freshness_basis": "observation_date",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "2a97373e2375a57c52d4a6480dc1d1d28d318d80029741e044327c38a1453d9b",
+      "sha256": "ae4a335695cf95365917a5d0a5b14edd72bc83d3dee7427e623539e9d8ce0f0f",
       "absent_relative_to_other_sources": [
         "2026-09-07",
-        "2026-10-13"
+        "2026-10-14"
       ]
     },
     "usdtwd_cbc.csv": {
-      "rows": 49,
+      "rows": 50,
       "first_date": "2026-08-03",
-      "latest_observation_date": "2026-10-13",
+      "latest_observation_date": "2026-10-14",
       "latest_retrieved_at_utc": null,
       "age_calendar_days": 0,
       "freshness_basis": "observation_date",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "7bc52b32c91cf81445b8a0396f0d66e5b7850814625ec73d7403062d76e72efc",
+      "sha256": "d445b21ab015523f6874cd511195fadad0384fce45bd9af3d415abe442ba5c9e",
       "absent_relative_to_other_sources": [
         "2026-09-25",
         "2026-09-28",
@@ -55,18 +55,18 @@
       "rows": 1,
       "first_date": "2026-09-18",
       "latest_observation_date": "2026-09-18",
-      "latest_retrieved_at_utc": "2026-10-13T17:04:27.590742+00:00",
+      "latest_retrieved_at_utc": "2026-10-14T14:37:30.807375+00:00",
       "age_calendar_days": 0,
       "freshness_basis": "retrieved_at_utc",
       "duplicate_keys": 0,
       "missing_required_cells": 0,
-      "sha256": "d3207b62d45f3ad55aef8d9674728de83be4e4353dd603077369560f25c99b25"
+      "sha256": "750790ecb5d930b4292abd6d98a80c6ab8bc9881f7e6fb7804a21adbc78a0d1b"
     }
   },
   "common": {
-    "rows": 47,
+    "rows": 48,
     "first_date": "2026-08-03",
-    "latest_date": "2026-10-12",
+    "latest_date": "2026-10-13",
     "dates": [
       "2026-08-03",
       "2026-08-04",
@@ -114,19 +114,20 @@
       "2026-10-06",
       "2026-10-07",
       "2026-10-08",
-      "2026-10-12"
+      "2026-10-12",
+      "2026-10-13"
     ]
   },
   "calendar_validation": "NOT_VERIFIED; relative absences may be holidays or missing data; no filling",
   "errors": [],
   "warnings": [],
   "last_source_update": {
-    "retrieved_at_utc": "2026-10-13T17:04:45.582677+00:00",
+    "retrieved_at_utc": "2026-10-14T14:37:50.001603+00:00",
     "sources": {
-      "TWSE": "ok (49 rows retained)",
-      "Vanguard prices": "ok (50 rows retained)",
+      "TWSE": "ok (50 rows retained)",
+      "Vanguard prices": "ok (51 rows retained)",
       "Vanguard distributions": "ok (1 rows retained)",
-      "CBC": "ok (49 rows retained)"
+      "CBC": "ok (50 rows retained)"
     },
     "validation_status": "PASS_WITH_CALENDAR_LIMITATION"
   }
