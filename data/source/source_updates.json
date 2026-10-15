@@ -1,10 +1,10 @@
 {
-  "retrieved_at_utc": "2026-10-14T14:37:50.001603+00:00",
+  "retrieved_at_utc": "2026-10-15T14:19:08.260503+00:00",
   "sources": {
-    "TWSE": "ok (50 rows retained)",
-    "Vanguard prices": "ok (51 rows retained)",
+    "TWSE": "ok (51 rows retained)",
+    "Vanguard prices": "ok (52 rows retained)",
     "Vanguard distributions": "ok (1 rows retained)",
-    "CBC": "ok (50 rows retained)"
+    "CBC": "ok (51 rows retained)"
   },
   "validation_status": "PASS_WITH_CALENDAR_LIMITATION"
 }
